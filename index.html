@@ -110,8 +110,7 @@
             updateUICount();
         }
 
-        // 4. Finalize Function
-        function finalizeReport() {
+      function finalizeReport() {
             if (cameraCoords.length === 0) {
                 alert("Please place at least one camera location first!");
                 return;
@@ -121,13 +120,21 @@
                 return [item.coords.lat.toFixed(6), item.coords.lng.toFixed(6)];
             });
             
-            var confirmation = "Successfully captured property plan.\n" +
-                               "--------------------------------\n" +
-                               simplifiedCoords.length + " Total Camera Viewpoints.\n\n" +
-                               "Sending coordinates to the safety report automation engine now...";
+            // --- LIVE WEBHOOK TRANSMISSION ---
+            var webhookUrl = "PASTE_YOUR_COPIED_MAKE_WEBHOOK_URL_HERE"; 
             
-            alert(confirmation);
+            fetch(webhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mapCenter: map.getCenter(),
+                    finalizedCameras: simplifiedCoords
+                })
+            })
+            .then(response => {
+                alert("Success! Coordinates successfully dispatched to Make.com blueprint.");
+            })
+            .catch(error => {
+                alert("Error sending to backend automation. Check your Make webhook URL link.");
+            });
         }
-    </script>
-</body>
-</html>
