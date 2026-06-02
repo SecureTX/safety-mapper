@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>D2D Camera Placer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
+        #map { height: calc(100% - 60px); width: 100%; }
+        #control-bar { height: 60px; width: 100%; background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; font-size: 14px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        button:active { background: #0056b3; }
+        #status { color: #aaa; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="control-bar">
+        <div id="status">Tap up to 3 locations</div>
+        <button id="submit-btn" onclick="sendToAutomation()">Generate Report</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Initialize map centered generally on San Antonio area
+        var map = L.map('map').setView([29.4241, -98.4936], 19);
+
+        // 2. Load Free Esri World Imagery (Satellite view)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+
+        // 3. Try to grab your live GPS coordinates as you park
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                map.setView([lat, lng], 19);
+                // Drop a temporary marker where your truck is parked
+                L.circle([lat, lng], {radius: 3, color: 'blue', fillOpacity: 0.8}).addTo(map);
+            });
+        }
+
+        // 4. Set up custom professional security camera icon overlay
+        var cameraIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/2833/2833303.png', // Transparent CCTV icon
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+        });
+
+        var cameraCoords = [];
+
+        // 5. Handle user tapping screen to place camera icons
+        map.on('click', function(e) {
+            if (cameraCoords.length < 3) {
+                L.marker(e.latlng, {icon: cameraIcon}).addTo(map);
+                cameraCoords.push(e.latlng);
+                document.getElementById('status').innerText = `Placed: ${cameraCoords.length}/3 Cameras`;
+            } else {
+                alert("Maximum 3 cameras placed. Tap 'Generate Report' or refresh to reset.");
+            }
+        });
+
+        // 6. Send payload to your future Make.com Webhook
+        function sendToAutomation() {
+            if (cameraCoords.length === 0) {
+                alert("Please tap the map to place at least one camera icon first!");
+                return;
+            }
+            
+            // Your Make.com Webhook URL goes here in Step 2
+            var webhookUrl = "YOUR_FUTURE_MAKE_WEBHOOK_URL_HERE"; 
+            
+            var payload = {
+                center: map.getCenter(),
+                cameras: cameraCoords
+            };
+
+            console.log("Sending payload to automation:", payload);
+            alert("Success! Sending data to blueprint: \n" + JSON.stringify(payload, null, 2));
+            
+            /* 
+            fetch(webhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            */
+        }
+    </script>
+</body>
+</html>
